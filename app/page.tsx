@@ -288,18 +288,17 @@ interface TabViewProps {
 
 const TabView: React.FC<TabViewProps> = ({ tabs }) => {
   const [activeTab, setActiveTab] = useState<string>(tabs[0].id);
-  const { isDarkMode } = useContext(ThemeContext);
   
   return (
     <div className="mb-8">
-      <div className="flex border-b border-gray-200 dark:border-gray-700 mb-4 overflow-x-auto">
+      <div className="flex border-b border-gray-200 mb-4 overflow-x-auto">
         {tabs.map(tab => (
           <button
             key={tab.id}
             className={`flex items-center py-3 px-4 font-medium text-sm transition-colors duration-200 whitespace-nowrap ${
               activeTab === tab.id 
-                ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400' 
-                : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                ? 'border-b-2 border-blue-500 text-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
             }`}
             onClick={() => setActiveTab(tab.id)}
           >
@@ -343,12 +342,10 @@ function DataTable<T>({
     direction: 'asc' | 'desc';
   } | null>(null);
   
-  const { isDarkMode } = useContext(ThemeContext);
-  
   // Filter data based on search term
   const filteredData = searchable 
     ? data.filter(item => 
-        Object.values(item).some(value => 
+        Object.values(item as Record<string, unknown>).some(value => 
           String(value).toLowerCase().includes(searchTerm.toLowerCase())
         )
       )
@@ -388,13 +385,13 @@ function DataTable<T>({
   };
   
   return (
-    <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+    <div className="overflow-hidden rounded-lg border border-gray-200">
       {searchable && (
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="p-4 border-b border-gray-200">
           <input
             type="text"
             placeholder="Search..."
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -402,15 +399,15 @@ function DataTable<T>({
       )}
       
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-800">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
             <tr>
               {columns.map((column, index) => (
                 <th 
                   key={index}
                   scope="col" 
-                  className={`px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
-                    sortable ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700' : ''
+                  className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                    sortable ? 'cursor-pointer hover:bg-gray-100' : ''
                   }`}
                   onClick={() => handleSort(column.key)}
                 >
@@ -426,11 +423,11 @@ function DataTable<T>({
               ))}
             </tr>
           </thead>
-          <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
+          <tbody className="bg-white divide-y divide-gray-200">
             {paginatedData.map((item, rowIndex) => (
-              <tr key={rowIndex} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+              <tr key={rowIndex} className="hover:bg-gray-50">
                 {columns.map((column, colIndex) => (
-                  <td key={colIndex} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                  <td key={colIndex} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {column.render 
                       ? column.render(item)
                       : String(item[column.key as keyof T] || '')}
@@ -443,26 +440,26 @@ function DataTable<T>({
       </div>
       
       {pagination && (
-        <div className="px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6">
+        <div className="px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
           <div className="flex-1 flex justify-between sm:hidden">
             <button
               onClick={() => setPage(Math.max(0, page - 1))}
               disabled={page === 0}
-              className="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+              className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
             >
               Previous
             </button>
             <button
               onClick={() => setPage(Math.min(Math.ceil(filteredData.length / rowsPerPage) - 1, page + 1))}
               disabled={page >= Math.ceil(filteredData.length / rowsPerPage) - 1}
-              className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+              className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
             >
               Next
             </button>
           </div>
           <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm text-gray-700 dark:text-gray-300">
+              <p className="text-sm text-gray-700">
                 Showing <span className="font-medium">{page * rowsPerPage + 1}</span> to{' '}
                 <span className="font-medium">
                   {Math.min((page + 1) * rowsPerPage, filteredData.length)}
@@ -472,7 +469,7 @@ function DataTable<T>({
             </div>
             <div>
               <select
-                className="mr-4 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                className="mr-4 px-2 py-1 border border-gray-300 rounded-md bg-white text-gray-700"
                 value={rowsPerPage}
                 onChange={(e) => {
                   setRowsPerPage(Number(e.target.value));
@@ -489,7 +486,7 @@ function DataTable<T>({
                 <button
                   onClick={() => setPage(0)}
                   disabled={page === 0}
-                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 text-sm font-medium text-gray-500 bg-white hover:bg-gray-50 disabled:opacity-50"
                 >
                   <span className="sr-only">First</span>
                   ⟪
@@ -497,7 +494,7 @@ function DataTable<T>({
                 <button
                   onClick={() => setPage(Math.max(0, page - 1))}
                   disabled={page === 0}
-                  className="relative inline-flex items-center px-2 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                  className="relative inline-flex items-center px-2 py-2 border border-gray-300 text-sm font-medium text-gray-500 bg-white hover:bg-gray-50 disabled:opacity-50"
                 >
                   <span className="sr-only">Previous</span>
                   ←
@@ -513,8 +510,8 @@ function DataTable<T>({
                       onClick={() => setPage(pageNumber)}
                       className={`relative inline-flex items-center px-4 py-2 border ${
                         page === pageNumber
-                          ? 'bg-blue-50 dark:bg-blue-900 border-blue-500 text-blue-600 dark:text-blue-400'
-                          : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                          ? 'bg-blue-50 text-blue-600'
+                          : 'border-gray-300 text-gray-500 hover:bg-gray-50'
                       }`}
                     >
                       {pageNumber + 1}
@@ -524,7 +521,7 @@ function DataTable<T>({
                 <button
                   onClick={() => setPage(Math.min(Math.ceil(filteredData.length / rowsPerPage) - 1, page + 1))}
                   disabled={page >= Math.ceil(filteredData.length / rowsPerPage) - 1}
-                  className="relative inline-flex items-center px-2 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                  className="relative inline-flex items-center px-2 py-2 border border-gray-300 text-sm font-medium text-gray-500 bg-white hover:bg-gray-50 disabled:opacity-50"
                 >
                   <span className="sr-only">Next</span>
                   →
@@ -532,7 +529,7 @@ function DataTable<T>({
                 <button
                   onClick={() => setPage(Math.ceil(filteredData.length / rowsPerPage) - 1)}
                   disabled={page >= Math.ceil(filteredData.length / rowsPerPage) - 1}
-                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 text-sm font-medium text-gray-500 bg-white hover:bg-gray-50 disabled:opacity-50"
                 >
                   <span className="sr-only">Last</span>
                   ⟫
@@ -553,8 +550,8 @@ interface MapViewProps {
 
 const MapView: React.FC<MapViewProps> = ({ data }) => {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 h-[500px] flex items-center justify-center">
-      <p className="text-gray-500 dark:text-gray-400">
+    <div className="bg-white rounded-xl shadow-lg p-6 h-[500px] flex items-center justify-center">
+      <p className="text-gray-500">
         Map visualization would be implemented here with libraries like react-leaflet or react-map-gl.
         The map would display {data.length} geographic points with different markers for faults, enforcements, etc.
       </p>
@@ -604,8 +601,8 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // In a real Next.js app, you would fetch this from an API endpoint
-        // For this example, we're simulating the data fetch with expanded data
+        // In a real Next.js app, you would likely fetch this from an API endpoint
+        // For this example, we're simulating the data fetch
         
         // Generate more comprehensive simulated data
         const allLocomotives: LocomotiveData[] = [];
@@ -703,7 +700,6 @@ const Dashboard: React.FC = () => {
         }
         
         // Generate initialization logs (162 total initializations mentioned)
-        const statuses: ('Successful' | 'Failed' | 'Incomplete')[] = ['Successful', 'Failed', 'Incomplete'];
         const statusWeights = [0.75, 0.11, 0.14]; // Based on the 121/18/23 distribution
         
         for (let i = 1; i <= 162; i++) {
@@ -868,6 +864,265 @@ const Dashboard: React.FC = () => {
     return <ErrorDisplay message="No data available" />;
   }
 
+  // Create detailed data tabs
+  const detailedDataTabs = [
+    {
+      id: 'locomotives',
+      label: 'Locomotives',
+      icon: '🚂',
+      content: (
+        <DataTable
+          data={data.allLocomotives}
+          columns={[
+            { key: 'id', header: 'Locomotive ID' },
+            { key: 'runs', header: 'Runs' },
+            { 
+              key: 'miles', 
+              header: 'Miles', 
+              render: (item) => item.miles.toFixed(2) 
+            },
+            { 
+              key: 'ptcActiveMiles', 
+              header: 'PTC Active Miles', 
+              render: (item) => item.ptcActiveMiles.toFixed(2) 
+            },
+            { 
+              key: 'ptcActivePercentage', 
+              header: 'PTC Active %', 
+              render: (item) => (
+                <span className={item.ptcActivePercentage < 95 ? 'text-red-500' : 'text-green-500'}>
+                  {item.ptcActivePercentage.toFixed(2)}%
+                </span>
+              )
+            },
+            { key: 'faults', header: 'Faults' },
+            { key: 'enforcements', header: 'Enforcements' },
+            { key: 'initializations', header: 'Initializations' },
+            { key: 'cutOutTrips', header: 'Cut Out Trips' }
+          ]}
+        />
+      )
+    },
+    {
+      id: 'faults',
+      label: 'Fault Details',
+      icon: '⚠️',
+      content: (
+        <DataTable
+          data={data.faultDetails}
+          columns={[
+            { key: 'id', header: 'ID' },
+            { key: 'locomotive', header: 'Locomotive' },
+            { 
+              key: 'timestamp', 
+              header: 'Time', 
+              render: (item) => new Date(item.timestamp).toLocaleTimeString() 
+            },
+            { key: 'faultCode', header: 'Fault Code' },
+            { key: 'description', header: 'Description' },
+            { 
+              key: 'severity', 
+              header: 'Severity',
+              render: (item) => {
+                const colors = {
+                  'Low': 'bg-blue-100 text-blue-800',
+                  'Medium': 'bg-yellow-100 text-yellow-800',
+                  'High': 'bg-orange-100 text-orange-800',
+                  'Critical': 'bg-red-100 text-red-800'
+                };
+                return (
+                  <span className={`px-2 py-1 rounded-full text-xs ${colors[item.severity]}`}>
+                    {item.severity}
+                  </span>
+                );
+              }
+            },
+            { 
+              key: 'resolved', 
+              header: 'Status',
+              render: (item) => (
+                <span className={`px-2 py-1 rounded-full text-xs ${item.resolved ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                  {item.resolved ? 'Resolved' : 'Open'}
+                </span>
+              )
+            }
+          ]}
+        />
+      )
+    },
+    {
+      id: 'hourly',
+      label: 'Hourly Activity',
+      icon: '🕒',
+      content: (
+        <div>
+          <TimeSeriesChart data={data.hourlyActivity} />
+          <div className="mt-6">
+            <DataTable
+              data={data.hourlyActivity}
+              columns={[
+                { 
+                  key: 'hour', 
+                  header: 'Hour', 
+                  render: (item) => `${item.hour}:00` 
+                },
+                { key: 'activeRuns', header: 'Active Runs' },
+                { 
+                  key: 'totalMiles', 
+                  header: 'Total Miles', 
+                  render: (item) => item.totalMiles.toFixed(2) 
+                },
+                { 
+                  key: 'ptcActiveMiles', 
+                  header: 'PTC Active Miles', 
+                  render: (item) => item.ptcActiveMiles.toFixed(2) 
+                },
+                { 
+                  key: 'ptcActivePercentage', 
+                  header: 'PTC Active %', 
+                  render: (item) => ((item.ptcActiveMiles / item.totalMiles) * 100).toFixed(2) + '%'
+                },
+                { key: 'faults', header: 'Faults' },
+                { key: 'enforcements', header: 'Enforcements' }
+              ]}
+            />
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'routes',
+      label: 'Train Routes',
+      icon: '🛤️',
+      content: (
+        <DataTable
+          data={data.trainRoutes}
+          columns={[
+            { key: 'routeId', header: 'Route ID' },
+            { key: 'routeName', header: 'Route Name' },
+            { 
+              key: 'locomotives', 
+              header: 'Locomotives',
+              render: (item) => (
+                <div className="max-w-xs overflow-hidden">
+                  <p className="truncate">{item.locomotives.join(', ')}</p>
+                </div>
+              )
+            },
+            { key: 'totalRuns', header: 'Total Runs' },
+            { 
+              key: 'totalMiles', 
+              header: 'Total Miles', 
+              render: (item) => item.totalMiles.toFixed(2) 
+            },
+            { 
+              key: 'ptcActivePercentage', 
+              header: 'PTC Active %', 
+              render: (item) => (
+                <span className={item.ptcActivePercentage < 95 ? 'text-red-500' : 'text-green-500'}>
+                  {item.ptcActivePercentage.toFixed(2)}%
+                </span>
+              )
+            },
+            { key: 'faults', header: 'Faults' }
+          ]}
+        />
+      )
+    },
+    {
+      id: 'initializations',
+      label: 'Initializations',
+      icon: '🔄',
+      content: (
+        <DataTable
+          data={data.initializationLogs}
+          columns={[
+            { key: 'id', header: 'ID' },
+            { key: 'locomotive', header: 'Locomotive' },
+            { 
+              key: 'timestamp', 
+              header: 'Time', 
+              render: (item) => new Date(item.timestamp).toLocaleTimeString() 
+            },
+            { 
+              key: 'status', 
+              header: 'Status',
+              render: (item) => {
+                const colors = {
+                  'Successful': 'bg-green-100 text-green-800',
+                  'Failed': 'bg-red-100 text-red-800',
+                  'Incomplete': 'bg-yellow-100 text-yellow-800'
+                };
+                return (
+                  <span className={`px-2 py-1 rounded-full text-xs ${colors[item.status]}`}>
+                    {item.status}
+                  </span>
+                );
+              }
+            },
+            { 
+              key: 'duration', 
+              header: 'Duration', 
+              render: (item) => `${(item.duration / 60).toFixed(1)} min` 
+            },
+            { 
+              key: 'faultCodes', 
+              header: 'Fault Codes',
+              render: (item) => item.faultCodes.join(', ') || 'None'
+            }
+          ]}
+        />
+      )
+    },
+    {
+      id: 'map',
+      label: 'Geographic Data',
+      icon: '🗺️',
+      content: (
+        <div>
+          <MapView data={data.geographicData} />
+          <div className="mt-6">
+            <DataTable
+              data={data.geographicData}
+              columns={[
+                { key: 'id', header: 'ID' },
+                { key: 'locomotive', header: 'Locomotive' },
+                { 
+                  key: 'eventType', 
+                  header: 'Event Type',
+                  render: (item) => {
+                    const colors = {
+                      'Fault': 'bg-red-100 text-red-800',
+                      'Enforcement': 'bg-yellow-100 text-yellow-800',
+                      'Initialization': 'bg-blue-100 text-blue-800',
+                      'CutOut': 'bg-purple-100 text-purple-800'
+                    };
+                    return (
+                      <span className={`px-2 py-1 rounded-full text-xs ${colors[item.eventType]}`}>
+                        {item.eventType}
+                      </span>
+                    );
+                  }
+                },
+                { 
+                  key: 'timestamp', 
+                  header: 'Time', 
+                  render: (item) => new Date(item.timestamp).toLocaleTimeString() 
+                },
+                { 
+                  key: 'coordinates', 
+                  header: 'Coordinates',
+                  render: (item) => `${item.latitude.toFixed(4)}, ${item.longitude.toFixed(4)}`
+                },
+                { key: 'details', header: 'Details' }
+              ]}
+            />
+          </div>
+        </div>
+      )
+    }
+  ];
+
   return (
     <ThemeProvider>
       <div className="bg-gray-50 dark:bg-gray-900 dark:text-white min-h-screen transition-colors duration-200">
@@ -924,56 +1179,56 @@ const Dashboard: React.FC = () => {
               <MetricCard 
                 title="Total Runs" 
                 value={data.overview.totalRuns} 
-                color="bg-blue-100" 
+                color="border-blue-500" 
                 bgColor="bg-blue-50"
                 icon={<span className="text-blue-500">🚂</span>}
               />
               <MetricCard 
                 title="Total Miles" 
                 value={data.overview.totalMiles.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} 
-                color="bg-green-100" 
+                color="border-green-500" 
                 bgColor="bg-green-50"
                 icon={<span className="text-green-500">🌍</span>}
               />
               <MetricCard 
                 title="PTC Active Miles" 
                 value={data.overview.totalPtcActiveMiles.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} 
-                color="bg-indigo-100" 
+                color="border-indigo-500" 
                 bgColor="bg-indigo-50"
                 icon={<span className="text-indigo-500">🚋</span>}
               />
               <MetricCard 
                 title="PTC Active %" 
                 value={`${data.overview.totalPtcActivePercentage}%`} 
-                color="bg-purple-100" 
+                color="border-purple-500" 
                 bgColor="bg-purple-50"
                 icon={<span className="text-purple-500">🚋</span>}
               />
               <MetricCard 
                 title="Total Enforcements" 
                 value={data.overview.totalEnforcements} 
-                color="bg-red-100" 
+                color="border-red-500" 
                 bgColor="bg-red-50"
                 icon={<span className="text-red-500">🚂</span>}
               />
               <MetricCard 
                 title="Total Faults" 
                 value={data.overview.totalFaults.toLocaleString()} 
-                color="bg-yellow-100" 
+                color="border-yellow-500" 
                 bgColor="bg-yellow-50"
                 icon={<span className="text-yellow-500">🚂</span>}
               />
               <MetricCard 
                 title="Total Initializations" 
                 value={data.overview.totalInits} 
-                color="bg-teal-100" 
+                color="border-teal-500" 
                 bgColor="bg-teal-50"
                 icon={<span className="text-teal-500">🚂</span>}
               />
               <MetricCard 
                 title="Cut Out Trips" 
                 value={data.overview.totalCutOutTrips} 
-                color="bg-orange-100" 
+                color="border-orange-500" 
                 bgColor="bg-orange-50"
                 icon={<span className="text-orange-500">🚂</span>}
               />
@@ -1009,6 +1264,7 @@ const Dashboard: React.FC = () => {
                     <XAxis type="number" className="dark:text-gray-400" />
                     <YAxis dataKey="name" type="category" width={80} className="dark:text-gray-400" />
                     <Tooltip 
+                      formatter={(value: number) => value.toFixed(2)} 
                       contentStyle={{ 
                         backgroundColor: 'var(--tooltip-bg)',
                         borderColor: 'var(--tooltip-border)',
@@ -1178,6 +1434,12 @@ const Dashboard: React.FC = () => {
                 <li>Locomotives 8056 and 8058 had the highest number of runs (7 each).</li>
                 <li>Locomotive 7850 traveled the most miles (194.49) with an excellent PTC active percentage of 99.04%.</li>
               </ul>
+            </div>
+            
+            {/* Detailed Data Section */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-8 transition-all duration-200">
+              <h2 className="text-xl font-semibold mb-4">Detailed Data</h2>
+              <TabView tabs={detailedDataTabs} />
             </div>
             
             {/* Footer */}
