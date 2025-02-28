@@ -40,6 +40,12 @@ interface DashboardData {
   runCountDistribution: ChartDataItem[];
   initsDistribution: ChartDataItem[];
   enforcementsDistribution: ChartDataItem[];
+  allLocomotives: LocomotiveData[];
+  faultDetails: FaultData[];
+  hourlyActivity: HourlyData[];
+  trainRoutes: TrainRouteData[];
+  initializationLogs: InitializationLog[];
+  geographicData: GeographicPoint[];
 }
 
 interface MetricCardProps {
@@ -209,6 +215,387 @@ const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ message }) => (
   </div>
 );
 
+// New interfaces for detailed data
+interface LocomotiveData {
+  id: string;
+  runs: number;
+  miles: number;
+  ptcActiveMiles: number;
+  ptcActivePercentage: number;
+  faults: number;
+  enforcements: number;
+  initializations: number;
+  cutOutTrips: number;
+}
+
+interface FaultData {
+  id: number;
+  locomotive: string;
+  timestamp: string;
+  faultCode: string;
+  description: string;
+  severity: 'Low' | 'Medium' | 'High' | 'Critical';
+  resolved: boolean;
+}
+
+interface HourlyData {
+  hour: number;
+  activeRuns: number;
+  totalMiles: number;
+  ptcActiveMiles: number;
+  faults: number;
+  enforcements: number;
+}
+
+interface TrainRouteData {
+  routeId: string;
+  routeName: string;
+  locomotives: string[];
+  totalRuns: number;
+  totalMiles: number;
+  ptcActivePercentage: number;
+  faults: number;
+}
+
+interface InitializationLog {
+  id: number;
+  locomotive: string;
+  timestamp: string;
+  status: 'Successful' | 'Failed' | 'Incomplete';
+  duration: number;
+  faultCodes: string[];
+}
+
+interface GeographicPoint {
+  id: number;
+  latitude: number;
+  longitude: number;
+  eventType: 'Fault' | 'Enforcement' | 'Initialization' | 'CutOut';
+  locomotive: string;
+  timestamp: string;
+  details: string;
+}
+
+// Add a new TabView component for organizing the expanded data
+interface TabViewProps {
+  tabs: {
+    id: string;
+    label: string;
+    icon: React.ReactNode;
+    content: React.ReactNode;
+  }[];
+}
+
+const TabView: React.FC<TabViewProps> = ({ tabs }) => {
+  const [activeTab, setActiveTab] = useState<string>(tabs[0].id);
+  const { isDarkMode } = useContext(ThemeContext);
+  
+  return (
+    <div className="mb-8">
+      <div className="flex border-b border-gray-200 dark:border-gray-700 mb-4 overflow-x-auto">
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            className={`flex items-center py-3 px-4 font-medium text-sm transition-colors duration-200 whitespace-nowrap ${
+              activeTab === tab.id 
+                ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400' 
+                : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+            }`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            <span className="mr-2">{tab.icon}</span>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+      <div>
+        {tabs.find(tab => tab.id === activeTab)?.content}
+      </div>
+    </div>
+  );
+};
+
+// Data Table component for displaying detailed records
+interface DataTableProps<T> {
+  data: T[];
+  columns: {
+    key: keyof T | string;
+    header: string;
+    render?: (item: T) => React.ReactNode;
+  }[];
+  pagination?: boolean;
+  searchable?: boolean;
+  sortable?: boolean;
+}
+
+function DataTable<T>({ 
+  data, 
+  columns, 
+  pagination = true, 
+  searchable = true,
+  sortable = true
+}: DataTableProps<T>) {
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortConfig, setSortConfig] = useState<{
+    key: keyof T | string;
+    direction: 'asc' | 'desc';
+  } | null>(null);
+  
+  const { isDarkMode } = useContext(ThemeContext);
+  
+  // Filter data based on search term
+  const filteredData = searchable 
+    ? data.filter(item => 
+        Object.values(item).some(value => 
+          String(value).toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      )
+    : data;
+    
+  // Sort data if sortable
+  const sortedData = sortable && sortConfig 
+    ? [...filteredData].sort((a, b) => {
+        const aValue = a[sortConfig.key as keyof T];
+        const bValue = b[sortConfig.key as keyof T];
+        
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      })
+    : filteredData;
+    
+  // Paginate data
+  const paginatedData = pagination 
+    ? sortedData.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+    : sortedData;
+    
+  const handleSort = (key: keyof T | string) => {
+    if (!sortable) return;
+    
+    let direction: 'asc' | 'desc' = 'asc';
+    
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    
+    setSortConfig({ key, direction });
+  };
+  
+  return (
+    <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+      {searchable && (
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+          <input
+            type="text"
+            placeholder="Search..."
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+      )}
+      
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead className="bg-gray-50 dark:bg-gray-800">
+            <tr>
+              {columns.map((column, index) => (
+                <th 
+                  key={index}
+                  scope="col" 
+                  className={`px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
+                    sortable ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700' : ''
+                  }`}
+                  onClick={() => handleSort(column.key)}
+                >
+                  <div className="flex items-center">
+                    {column.header}
+                    {sortable && sortConfig && sortConfig.key === column.key && (
+                      <span className="ml-1">
+                        {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
+            {paginatedData.map((item, rowIndex) => (
+              <tr key={rowIndex} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                {columns.map((column, colIndex) => (
+                  <td key={colIndex} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    {column.render 
+                      ? column.render(item)
+                      : String(item[column.key as keyof T] || '')}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      
+      {pagination && (
+        <div className="px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6">
+          <div className="flex-1 flex justify-between sm:hidden">
+            <button
+              onClick={() => setPage(Math.max(0, page - 1))}
+              disabled={page === 0}
+              className="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => setPage(Math.min(Math.ceil(filteredData.length / rowsPerPage) - 1, page + 1))}
+              disabled={page >= Math.ceil(filteredData.length / rowsPerPage) - 1}
+              className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                Showing <span className="font-medium">{page * rowsPerPage + 1}</span> to{' '}
+                <span className="font-medium">
+                  {Math.min((page + 1) * rowsPerPage, filteredData.length)}
+                </span>{' '}
+                of <span className="font-medium">{filteredData.length}</span> results
+              </p>
+            </div>
+            <div>
+              <select
+                className="mr-4 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                value={rowsPerPage}
+                onChange={(e) => {
+                  setRowsPerPage(Number(e.target.value));
+                  setPage(0);
+                }}
+              >
+                {[5, 10, 25, 50, 100].map(value => (
+                  <option key={value} value={value}>
+                    {value} per page
+                  </option>
+                ))}
+              </select>
+              <nav className="inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                <button
+                  onClick={() => setPage(0)}
+                  disabled={page === 0}
+                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                >
+                  <span className="sr-only">First</span>
+                  ⟪
+                </button>
+                <button
+                  onClick={() => setPage(Math.max(0, page - 1))}
+                  disabled={page === 0}
+                  className="relative inline-flex items-center px-2 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                >
+                  <span className="sr-only">Previous</span>
+                  ←
+                </button>
+                {Array.from({ length: Math.min(5, Math.ceil(filteredData.length / rowsPerPage)) }, (_, i) => {
+                  const pageNumber = page - 2 + i;
+                  if (pageNumber < 0 || pageNumber >= Math.ceil(filteredData.length / rowsPerPage)) {
+                    return null;
+                  }
+                  return (
+                    <button
+                      key={pageNumber}
+                      onClick={() => setPage(pageNumber)}
+                      className={`relative inline-flex items-center px-4 py-2 border ${
+                        page === pageNumber
+                          ? 'bg-blue-50 dark:bg-blue-900 border-blue-500 text-blue-600 dark:text-blue-400'
+                          : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      {pageNumber + 1}
+                    </button>
+                  );
+                })}
+                <button
+                  onClick={() => setPage(Math.min(Math.ceil(filteredData.length / rowsPerPage) - 1, page + 1))}
+                  disabled={page >= Math.ceil(filteredData.length / rowsPerPage) - 1}
+                  className="relative inline-flex items-center px-2 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                >
+                  <span className="sr-only">Next</span>
+                  →
+                </button>
+                <button
+                  onClick={() => setPage(Math.ceil(filteredData.length / rowsPerPage) - 1)}
+                  disabled={page >= Math.ceil(filteredData.length / rowsPerPage) - 1}
+                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                >
+                  <span className="sr-only">Last</span>
+                  ⟫
+                </button>
+              </nav>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Map component for geographic data visualization
+interface MapViewProps {
+  data: GeographicPoint[];
+}
+
+const MapView: React.FC<MapViewProps> = ({ data }) => {
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 h-[500px] flex items-center justify-center">
+      <p className="text-gray-500 dark:text-gray-400">
+        Map visualization would be implemented here with libraries like react-leaflet or react-map-gl.
+        The map would display {data.length} geographic points with different markers for faults, enforcements, etc.
+      </p>
+    </div>
+  );
+};
+
+// Time Series Chart component
+interface TimeSeriesProps {
+  data: HourlyData[];
+}
+
+const TimeSeriesChart: React.FC<TimeSeriesProps> = ({ data }) => {
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart data={data}>
+        <CartesianGrid strokeDasharray="3 3" className="dark:stroke-gray-700" />
+        <XAxis 
+          dataKey="hour" 
+          className="dark:text-gray-400"
+          tickFormatter={(hour) => `${hour}:00`}
+        />
+        <YAxis className="dark:text-gray-400" />
+        <Tooltip
+          contentStyle={{ 
+            backgroundColor: 'var(--tooltip-bg)',
+            borderColor: 'var(--tooltip-border)',
+            color: 'var(--tooltip-text)'
+          }}
+          formatter={(value, name) => [value, name]}
+          labelFormatter={(hour) => `Hour: ${hour}:00`}
+        />
+        <Legend />
+        <Bar dataKey="activeRuns" name="Active Runs" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="faults" name="Faults" fill="#ef4444" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="enforcements" name="Enforcements" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+};
+
 const Dashboard: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -217,14 +604,165 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // In a real Next.js app, you would likely fetch this from an API endpoint
-        // For this example, we're simulating the data fetch
+        // In a real Next.js app, you would fetch this from an API endpoint
+        // For this example, we're simulating the data fetch with expanded data
         
-        // In production, you would use something like:
-        // const response = await fetch('/api/ptc-data');
-        // const jsonData = await response.json();
+        // Generate more comprehensive simulated data
+        const allLocomotives: LocomotiveData[] = [];
+        const faultDetails: FaultData[] = [];
+        const hourlyActivity: HourlyData[] = [];
+        const trainRoutes: TrainRouteData[] = [];
+        const initializationLogs: InitializationLog[] = [];
+        const geographicData: GeographicPoint[] = [];
         
-        // Simulated data for this example
+        // Generate all locomotives data (48 locomotives mentioned in insights)
+        for (let i = 1; i <= 48; i++) {
+          const locoId = `MARC ${7800 + i}`;
+          const runs = Math.floor(Math.random() * 7) + 1;
+          const miles = Math.random() * 200 + 50;
+          const ptcActivePercentage = Math.random() * 15 + 85;
+          const ptcActiveMiles = miles * (ptcActivePercentage / 100);
+          
+          allLocomotives.push({
+            id: locoId,
+            runs,
+            miles,
+            ptcActiveMiles,
+            ptcActivePercentage,
+            faults: Math.floor(Math.random() * 100),
+            enforcements: Math.floor(Math.random() * 2),
+            initializations: Math.floor(Math.random() * 5) + 1,
+            cutOutTrips: Math.floor(Math.random() * 3)
+          });
+        }
+        
+        // Generate fault details (3,928 total faults mentioned)
+        const faultTypes = [
+          'Communication Loss', 'GPS Signal Loss', 'Brake Interface Error',
+          'Speed Sensor Fault', 'Track Database Error', 'Initialization Failure',
+          'Hardware Failure', 'Software Exception', 'Power Supply Issue'
+        ];
+        
+        const severityLevels: ('Low' | 'Medium' | 'High' | 'Critical')[] = ['Low', 'Medium', 'High', 'Critical'];
+        
+        for (let i = 1; i <= 100; i++) { // Limiting to 100 for demo purposes
+          const locomotive = allLocomotives[Math.floor(Math.random() * allLocomotives.length)].id;
+          const faultType = faultTypes[Math.floor(Math.random() * faultTypes.length)];
+          const severity = severityLevels[Math.floor(Math.random() * severityLevels.length)];
+          const hour = Math.floor(Math.random() * 24);
+          const minute = Math.floor(Math.random() * 60);
+          
+          faultDetails.push({
+            id: i,
+            locomotive,
+            timestamp: `2025-02-26T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`,
+            faultCode: `F${Math.floor(Math.random() * 1000)}`,
+            description: `${faultType} on ${locomotive}`,
+            severity,
+            resolved: Math.random() > 0.3
+          });
+        }
+        
+        // Generate hourly activity data
+        for (let hour = 0; hour < 24; hour++) {
+          const activeRuns = Math.floor(Math.random() * 15) + 5;
+          const totalMiles = Math.random() * 300 + 100;
+          const ptcActiveMiles = totalMiles * (Math.random() * 0.1 + 0.9); // 90-100% active
+          
+          hourlyActivity.push({
+            hour,
+            activeRuns,
+            totalMiles,
+            ptcActiveMiles,
+            faults: Math.floor(Math.random() * 200),
+            enforcements: hour % 8 === 0 ? 1 : 0 // Enforcements every 8 hours
+          });
+        }
+        
+        // Generate train routes data
+        const routeNames = [
+          'Penn Line', 'Camden Line', 'Brunswick Line',
+          'Washington-Baltimore', 'Baltimore-Perryville', 'Washington-Martinsburg'
+        ];
+        
+        for (let i = 0; i < routeNames.length; i++) {
+          const locos = [];
+          for (let j = 0; j < 3 + Math.floor(Math.random() * 4); j++) {
+            locos.push(allLocomotives[Math.floor(Math.random() * allLocomotives.length)].id);
+          }
+          
+          trainRoutes.push({
+            routeId: `R${i + 1}`,
+            routeName: routeNames[i],
+            locomotives: locos,
+            totalRuns: Math.floor(Math.random() * 30) + 10,
+            totalMiles: Math.random() * 1000 + 500,
+            ptcActivePercentage: Math.random() * 10 + 90,
+            faults: Math.floor(Math.random() * 500)
+          });
+        }
+        
+        // Generate initialization logs (162 total initializations mentioned)
+        const statuses: ('Successful' | 'Failed' | 'Incomplete')[] = ['Successful', 'Failed', 'Incomplete'];
+        const statusWeights = [0.75, 0.11, 0.14]; // Based on the 121/18/23 distribution
+        
+        for (let i = 1; i <= 162; i++) {
+          const locomotive = allLocomotives[Math.floor(Math.random() * allLocomotives.length)].id;
+          const hour = Math.floor(Math.random() * 24);
+          const minute = Math.floor(Math.random() * 60);
+          
+          // Determine status based on weights
+          let status: 'Successful' | 'Failed' | 'Incomplete';
+          const rand = Math.random();
+          if (rand < statusWeights[0]) {
+            status = 'Successful';
+          } else if (rand < statusWeights[0] + statusWeights[1]) {
+            status = 'Failed';
+          } else {
+            status = 'Incomplete';
+          }
+          
+          const faultCodes = status !== 'Successful' 
+            ? Array.from({ length: Math.floor(Math.random() * 3) + 1 }, 
+                () => `F${Math.floor(Math.random() * 1000)}`)
+            : [];
+          
+          initializationLogs.push({
+            id: i,
+            locomotive,
+            timestamp: `2025-02-26T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`,
+            status,
+            duration: Math.random() * 300 + 60, // 1-6 minutes
+            faultCodes
+          });
+        }
+        
+        // Generate geographic data
+        const eventTypes: ('Fault' | 'Enforcement' | 'Initialization' | 'CutOut')[] = 
+          ['Fault', 'Enforcement', 'Initialization', 'CutOut'];
+        
+        // Center around Maryland area
+        const baseLat = 39.0;
+        const baseLng = -76.8;
+        
+        for (let i = 1; i <= 100; i++) { // Limiting to 100 for demo
+          const eventType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+          const locomotive = allLocomotives[Math.floor(Math.random() * allLocomotives.length)].id;
+          const hour = Math.floor(Math.random() * 24);
+          const minute = Math.floor(Math.random() * 60);
+          
+          geographicData.push({
+            id: i,
+            latitude: baseLat + (Math.random() - 0.5) * 2,
+            longitude: baseLng + (Math.random() - 0.5) * 2,
+            eventType,
+            locomotive,
+            timestamp: `2025-02-26T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`,
+            details: `${eventType} event for ${locomotive}`
+          });
+        }
+        
+        // Set the expanded data
         setData({
           overview: {
             totalRuns: 144,
@@ -294,8 +832,15 @@ const Dashboard: React.FC = () => {
             { name: "Predictive", value: 1 },
             { name: "Reactive", value: 2 },
             { name: "Emergency", value: 0 }
-          ]
+          ],
+          allLocomotives,
+          faultDetails,
+          hourlyActivity,
+          trainRoutes,
+          initializationLogs,
+          geographicData
         });
+        
         setIsLoading(false);
       } catch (err) {
         console.error("Error loading data:", err);
