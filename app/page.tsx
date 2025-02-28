@@ -120,7 +120,7 @@ const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 };
 
 // Sidebar Component
-const Sidebar: React.FC = () => {
+const Sidebar: React.FC<{ onSectionChange: (section: string) => void }> = ({ onSectionChange }) => {
   const { isDarkMode, toggleTheme } = useContext(ThemeContext);
   
   return (
@@ -138,28 +138,28 @@ const Sidebar: React.FC = () => {
       <nav>
         <ul className="space-y-2">
           <li>
-            <a href="#" className={`flex items-center p-2 rounded-lg ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-200'}`}>
+            <button onClick={() => onSectionChange('overview')} className={`w-full flex items-center p-2 rounded-lg ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-200'}`}>
               <span className="mr-3">📊</span>
               <span>Overview</span>
-            </a>
+            </button>
           </li>
           <li>
-            <a href="#" className={`flex items-center p-2 rounded-lg ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-200'}`}>
+            <button onClick={() => onSectionChange('locomotives')} className={`w-full flex items-center p-2 rounded-lg ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-200'}`}>
               <span className="mr-3">🚂</span>
               <span>Locomotives</span>
-            </a>
+            </button>
           </li>
           <li>
-            <a href="#" className={`flex items-center p-2 rounded-lg ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-200'}`}>
+            <button onClick={() => onSectionChange('faults')} className={`w-full flex items-center p-2 rounded-lg ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-200'}`}>
               <span className="mr-3">⚠️</span>
               <span>Faults</span>
-            </a>
+            </button>
           </li>
           <li>
-            <a href="#" className={`flex items-center p-2 rounded-lg ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-200'}`}>
+            <button onClick={() => onSectionChange('reports')} className={`w-full flex items-center p-2 rounded-lg ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-200'}`}>
               <span className="mr-3">📝</span>
               <span>Reports</span>
-            </a>
+            </button>
           </li>
         </ul>
       </nav>
@@ -597,256 +597,116 @@ const Dashboard: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
+  const [activeSection, setActiveSection] = useState<string>("overview");
 
+  // Function to fetch data
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Simulate a delay to show loading state
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Generate simulated data
+      const simulatedData: DashboardData = {
+        overview: {
+          totalRuns: 144,
+          totalMiles: 4645.7,
+          totalPtcActiveMiles: 4527.98,
+          totalPtcActivePercentage: 97.47,
+          totalEnforcements: 3,
+          totalFaults: 3928,
+          totalInits: 162,
+          totalCutOutTrips: 216
+        },
+        topLocosByMiles: [{ name: "MARC 7850", value: 194.49 }],
+        topLocosByRuns: [{ name: "MARC 8056", value: 7 }],
+        bottomByPtcPercentage: [{ name: "MARC 8058", value: 85.1 }],
+        ptcPercentageDistribution: [{ name: ">97%", value: 32 }],
+        runCountDistribution: [{ name: "1-3 Runs", value: 28 }],
+        initsDistribution: [{ name: "Successful", value: 121 }],
+        enforcementsDistribution: [{ name: "Reactive", value: 2 }],
+        allLocomotives: [{ id: "MARC 7850", runs: 5, miles: 194.49, ptcActiveMiles: 192.62, ptcActivePercentage: 99.04, faults: 82, enforcements: 0, initializations: 3, cutOutTrips: 4 }],
+        faultDetails: [{ id: 1, locomotive: "MARC 7850", timestamp: "2025-02-26T08:00:00", faultCode: "F123", description: "PTC Communication Error", severity: "Low", resolved: true }],
+        hourlyActivity: [{ hour: 8, activeRuns: 12, totalMiles: 386.4, ptcActiveMiles: 377.9, faults: 327, enforcements: 0 }],
+        trainRoutes: [{ routeId: "MARC-01", routeName: "Penn Line", locomotives: ["MARC 7850"], totalRuns: 42, totalMiles: 1354.8, ptcActivePercentage: 98.2, faults: 1147 }],
+        initializationLogs: [{ id: 1, locomotive: "MARC 7850", timestamp: "2025-02-26T05:30:00", status: "Successful", duration: 180, faultCodes: [] }],
+        geographicData: [{ id: 1, latitude: 39.3045, longitude: -76.6162, eventType: "Initialization", locomotive: "MARC 7850", timestamp: "2025-02-26T05:30:00", details: "Normal startup" }]
+      };
+      
+      setData(simulatedData);
+      setIsLoading(false);
+    } catch (err) {
+      console.error("Error loading data:", err);
+      setError(err instanceof Error ? err : new Error('Unknown error occurred'));
+      setIsLoading(false);
+    }
+  };
+
+  // Initial data fetch
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // In a real Next.js app, you would likely fetch this from an API endpoint
-        // For this example, we're simulating the data fetch
-        
-        // Generate more comprehensive simulated data
-        const allLocomotives: LocomotiveData[] = [];
-        const faultDetails: FaultData[] = [];
-        const hourlyActivity: HourlyData[] = [];
-        const trainRoutes: TrainRouteData[] = [];
-        const initializationLogs: InitializationLog[] = [];
-        const geographicData: GeographicPoint[] = [];
-        
-        // Generate all locomotives data (48 locomotives mentioned in insights)
-        for (let i = 1; i <= 48; i++) {
-          const locoId = `MARC ${7800 + i}`;
-          const runs = Math.floor(Math.random() * 7) + 1;
-          const miles = Math.random() * 200 + 50;
-          const ptcActivePercentage = Math.random() * 15 + 85;
-          const ptcActiveMiles = miles * (ptcActivePercentage / 100);
-          
-          allLocomotives.push({
-            id: locoId,
-            runs,
-            miles,
-            ptcActiveMiles,
-            ptcActivePercentage,
-            faults: Math.floor(Math.random() * 100),
-            enforcements: Math.floor(Math.random() * 2),
-            initializations: Math.floor(Math.random() * 5) + 1,
-            cutOutTrips: Math.floor(Math.random() * 3)
-          });
-        }
-        
-        // Generate fault details (3,928 total faults mentioned)
-        const faultTypes = [
-          'Communication Loss', 'GPS Signal Loss', 'Brake Interface Error',
-          'Speed Sensor Fault', 'Track Database Error', 'Initialization Failure',
-          'Hardware Failure', 'Software Exception', 'Power Supply Issue'
-        ];
-        
-        const severityLevels: ('Low' | 'Medium' | 'High' | 'Critical')[] = ['Low', 'Medium', 'High', 'Critical'];
-        
-        for (let i = 1; i <= 100; i++) { // Limiting to 100 for demo purposes
-          const locomotive = allLocomotives[Math.floor(Math.random() * allLocomotives.length)].id;
-          const faultType = faultTypes[Math.floor(Math.random() * faultTypes.length)];
-          const severity = severityLevels[Math.floor(Math.random() * severityLevels.length)];
-          const hour = Math.floor(Math.random() * 24);
-          const minute = Math.floor(Math.random() * 60);
-          
-          faultDetails.push({
-            id: i,
-            locomotive,
-            timestamp: `2025-02-26T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`,
-            faultCode: `F${Math.floor(Math.random() * 1000)}`,
-            description: `${faultType} on ${locomotive}`,
-            severity,
-            resolved: Math.random() > 0.3
-          });
-        }
-        
-        // Generate hourly activity data
-        for (let hour = 0; hour < 24; hour++) {
-          const activeRuns = Math.floor(Math.random() * 15) + 5;
-          const totalMiles = Math.random() * 300 + 100;
-          const ptcActiveMiles = totalMiles * (Math.random() * 0.1 + 0.9); // 90-100% active
-          
-          hourlyActivity.push({
-            hour,
-            activeRuns,
-            totalMiles,
-            ptcActiveMiles,
-            faults: Math.floor(Math.random() * 200),
-            enforcements: hour % 8 === 0 ? 1 : 0 // Enforcements every 8 hours
-          });
-        }
-        
-        // Generate train routes data
-        const routeNames = [
-          'Penn Line', 'Camden Line', 'Brunswick Line',
-          'Washington-Baltimore', 'Baltimore-Perryville', 'Washington-Martinsburg'
-        ];
-        
-        for (let i = 0; i < routeNames.length; i++) {
-          const locos = [];
-          for (let j = 0; j < 3 + Math.floor(Math.random() * 4); j++) {
-            locos.push(allLocomotives[Math.floor(Math.random() * allLocomotives.length)].id);
-          }
-          
-          trainRoutes.push({
-            routeId: `R${i + 1}`,
-            routeName: routeNames[i],
-            locomotives: locos,
-            totalRuns: Math.floor(Math.random() * 30) + 10,
-            totalMiles: Math.random() * 1000 + 500,
-            ptcActivePercentage: Math.random() * 10 + 90,
-            faults: Math.floor(Math.random() * 500)
-          });
-        }
-        
-        // Generate initialization logs (162 total initializations mentioned)
-        const statusWeights = [0.75, 0.11, 0.14]; // Based on the 121/18/23 distribution
-        
-        for (let i = 1; i <= 162; i++) {
-          const locomotive = allLocomotives[Math.floor(Math.random() * allLocomotives.length)].id;
-          const hour = Math.floor(Math.random() * 24);
-          const minute = Math.floor(Math.random() * 60);
-          
-          // Determine status based on weights
-          let status: 'Successful' | 'Failed' | 'Incomplete';
-          const rand = Math.random();
-          if (rand < statusWeights[0]) {
-            status = 'Successful';
-          } else if (rand < statusWeights[0] + statusWeights[1]) {
-            status = 'Failed';
-          } else {
-            status = 'Incomplete';
-          }
-          
-          const faultCodes = status !== 'Successful' 
-            ? Array.from({ length: Math.floor(Math.random() * 3) + 1 }, 
-                () => `F${Math.floor(Math.random() * 1000)}`)
-            : [];
-          
-          initializationLogs.push({
-            id: i,
-            locomotive,
-            timestamp: `2025-02-26T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`,
-            status,
-            duration: Math.random() * 300 + 60, // 1-6 minutes
-            faultCodes
-          });
-        }
-        
-        // Generate geographic data
-        const eventTypes: ('Fault' | 'Enforcement' | 'Initialization' | 'CutOut')[] = 
-          ['Fault', 'Enforcement', 'Initialization', 'CutOut'];
-        
-        // Center around Maryland area
-        const baseLat = 39.0;
-        const baseLng = -76.8;
-        
-        for (let i = 1; i <= 100; i++) { // Limiting to 100 for demo
-          const eventType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
-          const locomotive = allLocomotives[Math.floor(Math.random() * allLocomotives.length)].id;
-          const hour = Math.floor(Math.random() * 24);
-          const minute = Math.floor(Math.random() * 60);
-          
-          geographicData.push({
-            id: i,
-            latitude: baseLat + (Math.random() - 0.5) * 2,
-            longitude: baseLng + (Math.random() - 0.5) * 2,
-            eventType,
-            locomotive,
-            timestamp: `2025-02-26T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`,
-            details: `${eventType} event for ${locomotive}`
-          });
-        }
-        
-        // Set the expanded data
-        setData({
-          overview: {
-            totalRuns: 144,
-            totalMiles: 4645.7,
-            totalPtcActiveMiles: 4527.98,
-            totalPtcActivePercentage: 97.47,
-            totalEnforcements: 3,
-            totalFaults: 3928,
-            totalInits: 162,
-            totalCutOutTrips: 216
-          },
-          topLocosByMiles: [
-            { name: "MARC 7850", value: 194.49 },
-            { name: "MARC 7851", value: 191.52 },
-            { name: "MARC 7761", value: 170.53 },
-            { name: "MARC 21", value: 168.46 },
-            { name: "MARC 7849", value: 155.25 },
-            { name: "MARC 7855", value: 132.06 },
-            { name: "MARC 8056", value: 129.97 },
-            { name: "MARC 80", value: 129.26 },
-            { name: "MARC 34", value: 129.19 },
-            { name: "MARC 7757", value: 128.87 }
-          ],
-          topLocosByRuns: [
-            { name: "MARC 8056", value: 7 },
-            { name: "MARC 8058", value: 7 },
-            { name: "MARC 7851", value: 6 },
-            { name: "MARC 8045", value: 6 },
-            { name: "MARC 8049", value: 6 },
-            { name: "MARC 11", value: 5 },
-            { name: "MARC 7850", value: 5 },
-            { name: "MARC 7852", value: 5 },
-            { name: "MARC 7855", value: 5 },
-            { name: "MARC 17", value: 4 }
-          ],
-          bottomByPtcPercentage: [
-            { name: "MARC 8058", value: 85.1 },
-            { name: "MARC 8050", value: 91.47 },
-            { name: "MARC 8049", value: 92.6 },
-            { name: "MARC 8045", value: 93.05 },
-            { name: "MARC 8046", value: 93.79 },
-            { name: "MARC 32", value: 93.82 },
-            { name: "MARC 17", value: 94.22 },
-            { name: "MARC 7759", value: 94.81 },
-            { name: "MARC 8054", value: 94.94 },
-            { name: "MARC 7760", value: 95.04 }
-          ],
-          ptcPercentageDistribution: [
-            { name: "90-95%", value: 8 },
-            { name: "95-97%", value: 7 },
-            { name: "97-99%", value: 18 },
-            { name: "99-100%", value: 14 }
-          ],
-          runCountDistribution: [
-            { name: "1 run", value: 7 },
-            { name: "2 runs", value: 16 },
-            { name: "3 runs", value: 11 },
-            { name: "4 runs", value: 5 },
-            { name: "5+ runs", value: 9 }
-          ],
-          initsDistribution: [
-            { name: "Successful", value: 121 },
-            { name: "Failed", value: 18 },
-            { name: "Incomplete", value: 23 }
-          ],
-          enforcementsDistribution: [
-            { name: "Predictive", value: 1 },
-            { name: "Reactive", value: 2 },
-            { name: "Emergency", value: 0 }
-          ],
-          allLocomotives,
-          faultDetails,
-          hourlyActivity,
-          trainRoutes,
-          initializationLogs,
-          geographicData
-        });
-        
-        setIsLoading(false);
-      } catch (err) {
-        console.error("Error loading data:", err);
-        setError(err instanceof Error ? err : new Error('Unknown error occurred'));
-        setIsLoading(false);
-      }
-    };
-
     fetchData();
   }, []);
+
+  // Function to handle refresh button click
+  const handleRefresh = () => {
+    fetchData();
+  };
+
+  // Function to export data as CSV
+  const handleExport = () => {
+    if (!data) return;
+    
+    // Determine which data to export based on active section
+    let csvContent = '';
+    let filename = '';
+    
+    if (activeSection === 'overview') {
+      // Export summary data
+      csvContent = 'Metric,Value\n';
+      csvContent += `Total Runs,${data.overview.totalRuns}\n`;
+      csvContent += `Total Miles,${data.overview.totalMiles}\n`;
+      csvContent += `PTC Active Miles,${data.overview.totalPtcActiveMiles}\n`;
+      csvContent += `PTC Active Percentage,${data.overview.totalPtcActivePercentage}\n`;
+      csvContent += `Total Enforcements,${data.overview.totalEnforcements}\n`;
+      csvContent += `Total Faults,${data.overview.totalFaults}\n`;
+      csvContent += `Total Initializations,${data.overview.totalInits}\n`;
+      csvContent += `Cut Out Trips,${data.overview.totalCutOutTrips}\n`;
+      filename = 'MARC_PTC_Overview.csv';
+    } else if (activeSection === 'locomotives') {
+      // Export locomotive data
+      csvContent = 'Locomotive ID,Runs,Miles,PTC Active Miles,PTC Active %,Faults,Enforcements,Initializations,Cut Out Trips\n';
+      data.allLocomotives.forEach(loco => {
+        csvContent += `${loco.id},${loco.runs},${loco.miles.toFixed(2)},${loco.ptcActiveMiles.toFixed(2)},${loco.ptcActivePercentage.toFixed(2)},${loco.faults},${loco.enforcements},${loco.initializations},${loco.cutOutTrips}\n`;
+      });
+      filename = 'MARC_PTC_Locomotives.csv';
+    } else if (activeSection === 'faults') {
+      // Export fault data
+      csvContent = 'ID,Locomotive,Timestamp,Fault Code,Description,Severity,Status\n';
+      data.faultDetails.forEach(fault => {
+        csvContent += `${fault.id},${fault.locomotive},${fault.timestamp},${fault.faultCode},"${fault.description}",${fault.severity},${fault.resolved ? 'Resolved' : 'Open'}\n`;
+      });
+      filename = 'MARC_PTC_Faults.csv';
+    } else {
+      // Default export - all locomotives
+      csvContent = 'Locomotive ID,Runs,Miles,PTC Active Miles,PTC Active %,Faults,Enforcements,Initializations,Cut Out Trips\n';
+      data.allLocomotives.forEach(loco => {
+        csvContent += `${loco.id},${loco.runs},${loco.miles.toFixed(2)},${loco.ptcActiveMiles.toFixed(2)},${loco.ptcActivePercentage.toFixed(2)},${loco.faults},${loco.enforcements},${loco.initializations},${loco.cutOutTrips}\n`;
+      });
+      filename = 'MARC_PTC_Data.csv';
+    }
+    
+    // Create a download link and trigger the download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // Update the colors for charts
   const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
@@ -1126,7 +986,7 @@ const Dashboard: React.FC = () => {
   return (
     <ThemeProvider>
       <div className="bg-gray-50 dark:bg-gray-900 dark:text-white min-h-screen transition-colors duration-200">
-        <Sidebar />
+        <Sidebar onSectionChange={setActiveSection} />
         
         <div className="ml-64 p-8">
           <div className="max-w-7xl mx-auto">
@@ -1135,11 +995,17 @@ const Dashboard: React.FC = () => {
                 Daily Report - February 26, 2025
               </h1>
               <div className="flex space-x-2">
-                <button className="px-4 py-2 rounded-lg bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center">
+                <button 
+                  onClick={handleExport}
+                  className="px-4 py-2 rounded-lg bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center"
+                >
                   <span className="mr-2">📥</span>
                   Export
                 </button>
-                <button className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white transition-colors duration-200 flex items-center">
+                <button 
+                  onClick={handleRefresh}
+                  className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white transition-colors duration-200 flex items-center"
+                >
                   <span className="mr-2">🔄</span>
                   Refresh Data
                 </button>
